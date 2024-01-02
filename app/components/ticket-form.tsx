@@ -1,8 +1,21 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { FormEventHandler, useState } from "react";
+import { useState } from "react";
 
-const TicketForm = () => {
+interface TicketsTypes {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: number;
+  progress: number;
+  status: string;
+  createdAt: string;
+}
+
+const TicketForm = ({ ticket }: { ticket: TicketsTypes }) => {
+  const editMode = ticket._id === "new" ? false : true;
+
   const startingTicketData = {
     title: "",
     description: "",
@@ -30,29 +43,49 @@ const TicketForm = () => {
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    // 👇️ prevent page refresh
     event.preventDefault();
-    const res = await fetch("api/ickets", {
-      method: "POST",
-      body: JSON.stringify({ formData }),
-    });
-    if (!res.status) {
-      throw new Error("Fallo en crear ticket.");
+    if (editMode) {
+      const res = await fetch(
+        `http://localhost:3000/api/tickets/${ticket._id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ formData }),
+        }
+      );
+      if (!res.ok) {
+        throw new Error("Fallo en actualizar el ticket.");
+      }
+    } else {
+      const res = await fetch("http://localhost:3000/api/tickets", {
+        method: "POST",
+        body: JSON.stringify({ formData }),
+      });
+      if (!res.ok) {
+        throw new Error("Fallo en crear ticket.");
+      }
     }
     router.refresh();
     router.push("/");
   };
+  if (editMode) {
+    startingTicketData["title"] = ticket.title;
+    startingTicketData["description"] = ticket.description;
+    startingTicketData["priority"] = ticket.priority;
+    startingTicketData["progress"] = ticket.progress;
+    startingTicketData["status"] = ticket.status;
+    startingTicketData["category"] = ticket.category;
+  }
 
   const [formData, setFormData] = useState(startingTicketData);
 
   return (
-    <div className="flex jsutify-center">
+    <div className="flex justify-center">
       <form
         className="flex flex-col gap-3 w-1/2"
         method="post"
         onSubmit={handleSubmit}
       >
-        <h3>Crea tu ticket</h3>
+        <h3>{editMode ? "Actualizar Ticket" : "Crear Ticket"}</h3>
         <label>Titulo</label>
         <input
           type="text"
@@ -118,7 +151,7 @@ const TicketForm = () => {
             value={4}
             checked={formData.priority == 4}
           />
-          <label>1</label>
+          <label>4</label>
           <input
             type="radio"
             id="priority-5"
@@ -145,7 +178,11 @@ const TicketForm = () => {
           <option value={"started"}>Inciado</option>
           <option value={"done"}>Finalizado</option>
         </select>
-        <input type="submit" className="btn" value={"Crear ticket"} />
+        <input
+          type="submit"
+          className="btn"
+          value={editMode ? "Actualizar Ticket" : "Crear Ticket"}
+        />
       </form>
     </div>
   );
